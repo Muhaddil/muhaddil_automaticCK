@@ -26,7 +26,7 @@ function deleteTables(table, column, identifier)
 end
 
 function doCharacterKill(identifier)
-    for _, data in pairs(Config.Tables) do
+    for _, data in ipairs(Config.Tables) do
         deleteTables(data.table, data.column, identifier)
     end
 end
@@ -35,7 +35,7 @@ function checkInactivePlayers()
     local inactivityDateTime = GetInactivityDateTime()
     DebugPrint("Checking players inactive since: " .. inactivityDateTime)
 
-    local inactiveUsers = GetInactiveUsers(inactivityDateTime) 
+    local inactiveUsers = GetInactiveUsers(inactivityDateTime)
     DebugPrint("• Found " .. #inactiveUsers .. " inactive users")
 
     for _, user in ipairs(inactiveUsers) do
@@ -46,7 +46,7 @@ end
 
 function GetInactiveUsers(inactivityDateTime)
     return MySQL.query.await(
-        'SELECT `identifier`, `last_login` FROM `users` WHERE `last_login` <= ?', 
+        'SELECT `identifier`, `last_login` FROM `users` WHERE `last_login` <= ?',
         { inactivityDateTime }
     )
 end
