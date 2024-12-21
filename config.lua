@@ -1,5 +1,7 @@
 Config = {}
 
+Config.FrameWork = 'esx' -- esx or qb
+
 Config.AutomaticCKTrigger = 90 -- Player has to not join the server for this ammount of days for the automatic CK to work on its player
 Config.CheckAutomatically = 3  -- Checks automatically every 3 hours if there is a player that needs a CK.
 
@@ -14,4 +16,5 @@ Config.Tables = {
     { table = 'user_licenses', column = 'owner' },
     { table = 'users', column = 'identifier' },
     { table = 'datastore_data', column = 'owner' },
+    { table = 'player_outfits', column = 'citizenid' },
 }

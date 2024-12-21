@@ -1,4 +1,8 @@
-ESX = exports['es_extended']:getSharedObject()
+if Config.FrameWork == "esx" then
+    ESX = exports['es_extended']:getSharedObject()
+elseif Config.FrameWork == "qb" then
+    QBCore = exports['qb-core']:GetCoreObject()
+end
 
 function DebugPrint(...)
     if Config.DebugMode then
@@ -6,17 +10,40 @@ function DebugPrint(...)
     end
 end
 
-AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
-    local currentDate = os.date("%Y-%m-%d %H:%M:%S") -- Fecha actual formateada
+if Config.FrameWork == "esx" then
+    AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
+        UpdateLastLogin(xPlayer.getIdentifier())
+    end)
+elseif Config.FrameWork == "qb" then
+    RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
+        local player = QBCore.Functions.GetPlayerData()
+        UpdateLastLogin(player.citizenid)
+    end)
+end
+
+function UpdateLastLogin(identifier)
+    local currentDate = os.date("%Y-%m-%d %H:%M:%S")
     MySQL.Async.execute('UPDATE users SET last_login = @last_login WHERE identifier = @identifier', {
         ['@last_login'] = currentDate,
-        ['@identifier'] = xPlayer.getIdentifier()
+        ['@identifier'] = identifier
     }, function(rowsChanged)
         if rowsChanged > 0 then
-            DebugPrint('Last login updated for player: ' .. xPlayer.getIdentifier())
+            DebugPrint('Last login updated for player: ' .. identifier)
         end
     end)
-end)
+end
+
+-- AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
+--     local currentDate = os.date("%Y-%m-%d %H:%M:%S") -- Fecha actual formateada
+--     MySQL.Async.execute('UPDATE users SET last_login = @last_login WHERE identifier = @identifier', {
+--         ['@last_login'] = currentDate,
+--         ['@identifier'] = xPlayer.getIdentifier()
+--     }, function(rowsChanged)
+--         if rowsChanged > 0 then
+--             DebugPrint('Last login updated for player: ' .. xPlayer.getIdentifier())
+--         end
+--     end)
+-- end)
 
 function deleteTables(table, column, identifier)
     local sql = string.format('DELETE FROM `%s` WHERE `%s`=@identifier', table, column)
@@ -45,26 +72,24 @@ function checkInactivePlayers()
 end
 
 function GetInactiveUsers(inactivityDateTime)
-    return MySQL.query.await(
+    local users = MySQL.query.await(
         'SELECT `identifier`, `last_login` FROM `users` WHERE `last_login` <= ?',
         { inactivityDateTime }
     )
+
+    for _, user in ipairs(users) do
+        local lastLoginDate = os.date("%Y-%m-%d %H:%M:%S", math.floor(user.last_login / 1000))
+        DebugPrint(string.format("Inactive user found: %s, last login: %s", user.identifier, lastLoginDate))
+    end
+
+    return users
 end
 
 function GetInactivityDateTime()
-    local currentTimestamp = os.date("*t", os.time())
-    currentTimestamp.day = currentTimestamp.day - Config.AutomaticCKTrigger
+    local currentTimestamp = os.time()
 
-    if currentTimestamp.day <= 0 then
-        currentTimestamp.month = currentTimestamp.month - 1
-        if currentTimestamp.month <= 0 then
-            currentTimestamp.month = 12
-            currentTimestamp.year = currentTimestamp.year - 1
-        end
-        currentTimestamp.day = 30
-    end
+    local inactivityTimestamp = currentTimestamp - (Config.AutomaticCKTrigger * 24 * 60 * 60)
 
-    local inactivityTimestamp = os.time(currentTimestamp)
     return os.date("%Y-%m-%d %H:%M:%S", inactivityTimestamp)
 end
 
