@@ -3,10 +3,10 @@ Config = {}
 Config.FrameWork = 'esx' -- esx or qb
 
 Config.AutomaticCKTrigger = 90 -- Player has to not join the server for this ammount of days for the automatic CK to work on its player
-Config.CheckAutomatically = 3  -- Checks automatically every 3 hours if there is a player that needs a CK.
+Config.CheckAutomatically = 120  -- Checks automatically every X minutes if there is a player that needs a CK.
 
 Config.DebugMode = false -- Enables the DebugMode (extra prints)
-Config.AutoVersionChecker = true
+Config.AutoVersionChecker = true -- Checks automatically for a new version of the script
 
 Config.Tables = {
     { table = 'addon_account_data', column = 'owner' },

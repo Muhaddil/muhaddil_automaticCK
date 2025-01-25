@@ -47,9 +47,13 @@ end
 
 function deleteTables(table, column, identifier)
     local sql = string.format('DELETE FROM `%s` WHERE `%s`=@identifier', table, column)
-    MySQL.Sync.execute(sql, {
+    MySQL.Async.execute(sql, {
         ['@identifier'] = identifier,
-    })
+    }, function(rowsChanged)
+        if rowsChanged > 0 then
+            DebugPrint('Successfully deleted data for identifier: ' .. identifier)
+        end
+    end)
 end
 
 function doCharacterKill(identifier)
@@ -60,10 +64,10 @@ end
 
 function checkInactivePlayers()
     local inactivityDateTime = GetInactivityDateTime()
-    DebugPrint("Checking players inactive since: " .. inactivityDateTime)
+    print("Checking players inactive since: " .. inactivityDateTime)
 
     local inactiveUsers = GetInactiveUsers(inactivityDateTime)
-    DebugPrint("• Found " .. #inactiveUsers .. " inactive users")
+    print("• Found " .. #inactiveUsers .. " inactive users")
 
     for _, user in ipairs(inactiveUsers) do
         print("  + Performing CK for player: " .. user.identifier)
@@ -103,11 +107,26 @@ AddEventHandler('onResourceStart', function(resourceName)
     end)
 end)
 
-Citizen.CreateThread(function()
-    local hoursInMilliseconds = Config.CheckAutomatically * 60 * 60 * 1000
-    while true do
-        Citizen.Wait(hoursInMilliseconds)
-        print('=== AUTOMATIC CK TRIGGERED ===')
-        checkInactivePlayers()
+local function getCronExpression(intervalInMinutes)
+    if intervalInMinutes < 1 then
+        error('El intervalo debe ser un valor positivo.')
+    elseif intervalInMinutes <= 59 then
+        return string.format("*/%d * * * *", intervalInMinutes)
+    else
+        local hours = math.floor(intervalInMinutes / 60)
+        local minutes = intervalInMinutes % 60
+        
+        if minutes == 0 then
+            return string.format("0 */%d * * *", hours)
+        else
+            return string.format("%d */%d * * *", minutes, hours)
+        end
     end
+end
+
+local cronExpression = getCronExpression(Config.CheckAutomatically)
+DebugPrint('Cron expression: ' .. cronExpression)
+lib.cron.new(cronExpression, function()
+    print('=== AUTOMATIC CK TRIGGERED ===')
+    checkInactivePlayers()
 end)
